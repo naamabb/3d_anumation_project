@@ -1,0 +1,2 @@
+C:/Dev/EngineForAnimationCourse/tutorial/data/sphere.obj
+C:/Users/97252/Desktop/courses/3D_animation/project/snake2.obj
