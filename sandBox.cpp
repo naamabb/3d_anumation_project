@@ -80,6 +80,7 @@ void SandBox::SnakeLoader(const std::string& config) {
                 target = *new Movable();
                 Voriginal = data().V;
                 updateDirection = false;
+                up_direction = Eigen::Vector3d(0, 1, 0);
                 isActive = false;
 
 
@@ -256,24 +257,13 @@ void SandBox::StartGame(Renderer& renderer) {
     }
     render->SetCameraEye(Eigen::Vector3f(0, 10, 0));
     render->core().camera_up = Eigen::Vector3f(0, 0, 1);
+    original_base_zoom = render->core().camera_base_zoom;
     Points = 0;
     level = 0;
     sqrt_targets = 2;
     cur_num_tragets = sqrt_targets* sqrt_targets;
     center = render->core().camera_center;
     levelUp = false;
-    double xCorner, yCorner, zCorner, xDim, yDim, zDim, xSize, ySize, zSize;
-    xCorner = -10;
-    yCorner = 0;
-    zCorner = 10;
-    xDim = 2;
-    yDim = 1;
-    zDim = 2;
-    xSize = 10;
-    ySize = 0;
-    zSize = 10;
-   // int numTargets = calculateGrid(xCorner, yCorner, zCorner, xDim, yDim,
-        //zDim, xSize, ySize, zSize);
     int size = sqrt_targets*2;
     int numTargets = calculateGrid(Eigen::Vector3d(0,0,1), Eigen::Vector3d(1,0,0), Eigen::Vector3d(1,0,-6),size);
     MoveTargets(numTargets);
@@ -469,7 +459,7 @@ Eigen::Vector3d* SandBox::getJointPos(int idx) {
     std::vector<Eigen::Vector3d> vT, vT_tmp;
     if (AutoMode) {
         if (targets_to_show.size() > 0) {
-            int idx = targets_to_show[0];
+            int idx = getClosestFood();
             Eigen::Vector3d curTargetPos = (data_list[idx].MakeTransd() * Eigen::Vector4d(0, 0, 0, 1)).head(3);
             Eigen::Vector3d head_pos = *getJointPos(HEAD_IDX);
             t = (curTargetPos - head_pos).normalized() * velocity;
@@ -604,97 +594,40 @@ Eigen::Vector3d* SandBox::getJointPos(int idx) {
    //isActive = false;
 }*/
 
-
-void SandBox::FollowWithCamera( bool start){
-    if (start) {
-        FollowMe = true;
-        original_base_zoom = render->core().camera_base_zoom;
-        render->core().camera_base_zoom = 1;
-        render->core().camera_base_translation = Eigen::Vector3f(0, 0, 0);
-        //render->core().camera_zoom =;
-
-        Eigen::Vector3f cur_orig = render->core().camera_eye;
-        Eigen::Vector3f head_base = getJointPos(HEAD_BASE)->cast<float>();
-        Eigen::Vector3f eye_base = getJointPos(HEAD_BASE -2)->cast<float>();
-        Eigen::Vector3f local_dir = (getJointPos(HEAD_BASE - 1)->cast<float>() - getJointPos(HEAD_BASE - 3)->cast<float>()).normalized();
-        Eigen::Vector3f middle = getJointPos(NUM_JOINTS / 2 + 1)->cast<float>();
-        Eigen::Vector3f head_tip = getJointPos(HEAD_IDX)->cast<float>();
-        Eigen::Vector3f up_vec = (Joints[HEAD_BASE - 2].GetRotation()*Eigen::Vector3d(0,0,1)).cast<float>();
-        Eigen::Vector3f rightDirection = (Joints[HEAD_IDX].GetRotation() * Eigen::Vector3d(-1, 0, 0)).cast<float>();
-        Eigen::Vector3f head_direction = (Joints[HEAD_IDX].GetRotation()*Eigen::Vector3d(0,0,1)).cast<float>();
-        Eigen::Vector3f head_direction2 = (head_tip - head_base).normalized();
-        //Eigen::Vector3f up_direction = Joints[HEAD_BASE - 2].GetRotation()*Eigen::Vector3d(0,0,1).cast<float>();
-        Eigen::Vector3f up_direction = rightDirection.cross(head_direction).normalized();
-        //up_direction = (up_direction - up_direction.dot(local_dir) * up_direction).normalized();
-        eye_base = head_base;
-        Eigen::Vector3f eye = eye_base + up_direction*4 ;
-        //eye = up_direction * 3;
-        Eigen::Vector3f center = head_tip  - up_direction;
-        //Eigen::Vector3f center = head_tip + head_direction*0.01 - up_direction;
-     
-        render->SetCameraEye(eye);
-        render->centerCamera(center);
-        render->core().camera_up = up_direction;
-        center = render->core().camera_center;
+void SandBox::firstEyeView() {
+    FollowMe = !FollowMe;
+    if (!FollowMe) {
+        StaticView();
     }
- 
+}
 
+void SandBox::StaticView() {
+    render->SetCameraEye(Eigen::Vector3f(0, 10, 0));
+    render->core().camera_up = Eigen::Vector3f(0, 0, 1);
+    render->centerCamera(Eigen::Vector3f(0, 0, 0));
+    render->core().camera_base_zoom = original_base_zoom;
+}
 
+void SandBox::FollowWithCamera(){
+
+    render->core().camera_base_zoom = 1;
+    render->core().camera_base_translation = Eigen::Vector3f(0, 0, 0);
+    Eigen::Vector3f tarOrientation = (target.GetRotation() * Eigen::Vector3d(0, 0, 1)).cast<float>();
+    Eigen::Vector3f eye = getJointPos(0)->cast<float>() + up_direction.cast<float>();
+    Eigen::Vector3f center = getJointPos(HEAD_IDX)->cast<float>() + tarOrientation;
+    render->SetCameraEye(eye);
+    render->centerCamera(center);
+    render->core().camera_up = up_direction.cast<float>();
+    
 
 
 }
 
-/*void SandBox::FollowWithCamera(Renderer& renderer, bool start) {
-    if (start) {
-        //core.camera_center = getJointPos(HEAD_IDX)->cast<float>();
-        FollowMe = true;
-        render = &renderer;
-        original_base_zoom = render->core().camera_base_zoom;
-        render->core().camera_base_zoom = 1;
-        
-        Eigen::Vector3f eye = (Joints[HEAD_IDX].GetRotation() * Eigen::Vector3d(0, 3, 0)).cast<float>();
-        //Eigen::Vector3f eye = (  head_tip).normalized();
-        Eigen::Vector3f translation = (Joints[HEAD_BASE].MakeTransd() * Eigen::Vector4d(0, 0, 0, 1)).head(3).cast<float>();
-
-        render->SetCameraTranslation(-translation);
-        render->SetCameraEye(eye);
-        Eigen::Vector3f up = (Joints[HEAD_IDX].GetRotation() * Eigen::Vector3d(0, 0, 1)).cast<float>();
-        //render->centerCamera(Eigen::Vector3f(0, 0, 1));
-        render->core().camera_up = up.normalized();
-        Eigen::Vector3f head_base = getJointPos(HEAD_BASE)->cast<float>();
-        Eigen::Vector3f head_tip = getJointPos(HEAD_IDX)->cast<float>();
-        Eigen::Vector3f eye = (  head_tip + (head_tip - head_base)).normalized();
-        //Eigen::Vector3f eye = (  head_tip).normalized();
-        Eigen::Vector3f translation = (Joints[HEAD_IDX].MakeTransd() * Eigen::Vector4d(0, 0, 0, 1)).head(3).cast<float>();
-        
-        render->SetCameraTranslation(-translation);
-        render->SetCameraEye(eye);
-        Eigen::Vector3f up = (Joints[HEAD_IDX].GetRotation() * Eigen::Vector3d(0, 1, 0)).cast<float>();
-        //render->centerCamera(Eigen::Vector3f(0, 0, 1));
-        render->core().camera_up = up.normalized();
-        //Eigen::Vector3f eye = Eigen::Vector3f(0,0,1+ (1.6-1)* render->core().camera_base_zoom);
-
-        //Eigen::Vector3f eye = Eigen::Vector3f(0, 0, 4);
-        //render->SetCameraEye(eye);
-       // Eigen::Vector3f translation = Eigen::Vector3f(0,0,-1);
-        //render->centerCamera(Eigen::Vector3f(0, 0, 4)*render->core().camera_base_zoom);
-       // render->SetCameraTranslation(translation);
-        
+void SandBox::flipAutoMode() {
+    AutoMode = !AutoMode;
+}
 
 
-        
-
-    }
-    else {
-        FollowMe = false;
-        render->core().camera_base_zoom = original_base_zoom;
-        Eigen::Vector3f p = getJointPos(NUM_JOINTS / 2)->cast<float>() + Eigen::Vector3f(0,0,10);
-        render->core().camera_up = Eigen::Vector3f(0, 1, 0);
-        Eigen::Vector3f eye = p;
-        render->SetCameraEye(eye);
-
-    }
-}*/
 
 void SandBox::Init(const std::string &config)
 {
@@ -1546,6 +1479,26 @@ bool SandBox::CatchTarget() {
     
 }
 
+int SandBox::getClosestFood() {
+    /*
+    * returns the index in data list of the closest target to the snake head.
+    */
+    int idx, res;
+    double distance, resDistance = -1;
+    Eigen::Vector3d target_pos, head_pos;
+    head_pos = *getJointPos(HEAD_IDX);
+    for (int i = 0; i < targets_to_show.size(); i++) {
+        idx = targets_to_show[i];
+        target_pos = (data_list[idx].MakeTransd() * Eigen::Vector4d(0, 0, 0, 1)).head(3);
+        distance = (target_pos - head_pos).norm();
+        if (resDistance == -1 || distance < resDistance) {
+            res = idx;
+        }
+    }
+    return res;
+
+}
+
 void SandBox::LevelUp(int n) {
     std::cout << "starting level: " << n << std::endl;
     ResetJoints();
@@ -1815,9 +1768,11 @@ void SandBox::change_snake_direction(Eigen::Vector3d d) {
     Eigen::Quaterniond rot;
     Eigen::Vector3d relativeD = target.GetRotation() * d;
     Eigen::Vector3d curD = target.GetRotation() * Eigen::Vector3d(0, 0, 1);
+    
     rot = Eigen::Quaterniond::FromTwoVectors(curD, relativeD);
     rot = rot.slerp(0.90, Eigen::Quaterniond::Identity());
     target.MyRotate(rot);
+    up_direction = target.GetRotation() * up_direction;
 
 
 }
@@ -1887,7 +1842,6 @@ int SandBox::getScore() {
 
 
 
-
 void SandBox::Animate()
 {
     if (isActive)
@@ -1902,7 +1856,7 @@ void SandBox::Animate()
         }
         MoveSnake();
         if (FollowMe) {
-            FollowWithCamera(true);
+            FollowWithCamera();
         }
 
     }

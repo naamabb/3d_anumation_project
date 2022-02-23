@@ -19,6 +19,7 @@
 //#include <imgui_fonts_droid_sans.h>
 //#include <GLFW/glfw3.h>
 #include <iostream>
+
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace igl
@@ -223,6 +224,7 @@ IGL_INLINE void ImGuiMenu::draw_viewer_menu(igl::opengl::glfw::Viewer *viewer, s
   // Mesh
   if (ImGui::CollapsingHeader("Mesh", ImGuiTreeNodeFlags_DefaultOpen))
   {
+
     float w = ImGui::GetContentRegionAvailWidth();
     float p = ImGui::GetStyle().FramePadding.x;
     if (ImGui::Button("Load##Mesh", ImVec2((w-p)/2.f, 0)))
@@ -325,12 +327,20 @@ IGL_INLINE void ImGuiMenu::draw_viewer_menu(igl::opengl::glfw::Viewer *viewer, s
   //text
   if (ImGui::CollapsingHeader("Game", ImGuiTreeNodeFlags_DefaultOpen))
   {
+      ImGui::Text("Press 's' to start the game.");
+      ImGui::Text("Press 'a' to start moving.");
       char level[100];
       char score[100];
       sprintf(level, "Level %d \0", viewer->getLevel());
       sprintf(score, "Score %d \0", viewer->getScore());
       ImGui::Text(level);
       ImGui::Text(score);
+      if (ImGui::Button("camera view")) {
+          viewer->firstEyeView();
+      }
+      if (ImGui::Button("Auto Mode")) {
+          viewer->flipAutoMode();
+      }
       
 
   }

@@ -171,7 +171,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 		case 'h':
 		case 'H':
 			//rndr->RotateCamera(0, -0.1f);
-			scn->FollowWithCamera(true);
+			scn->firstEyeView();
 			break;
 		case 'j':
 		case 'J':

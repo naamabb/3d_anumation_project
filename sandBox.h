@@ -79,10 +79,13 @@ public:
 	Eigen::Vector3d* SandBox::getJointPos(int idx);
 	void change_snake_direction(Eigen::Vector3d d);
 	Eigen::Matrix3d* calcParentsRot(int idx);
-	void FollowWithCamera( bool start);
+	void FollowWithCamera();
+	void firstEyeView();
+	void StaticView();
 	void StartGame(Renderer& renderer);
 	bool isIntersect(Eigen::AlignedBox<double, 3> box0, Eigen::AlignedBox<double, 3> box1, Movable* obj0, Movable* obj1);
 	bool CatchTarget();
+	void flipAutoMode();
 	void LevelUp(int n);
 	void ResetJoints();
 	int calculateGrid(double xCorner, double yCorner, double zCorner, double xDim, double yDim,
@@ -90,6 +93,8 @@ public:
 	int calculateGrid(Eigen::Vector3d d1, Eigen::Vector3d d2, Eigen::Vector3d corner,
 		double size);
 	void MoveTargets(int numTargets);
+	int getClosestFood();
+
 	bool AutoMode;
 	typedef
 		std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond> >
@@ -145,7 +150,7 @@ private:
 	Eigen::VectorXi P;
 	//std::vector<Eigen::Vector3d> turnPosition; // rotations of joints for animation
 	std::vector<Movable> Joints;
-	Eigen::Vector3d step_size;
+	Eigen::Vector3d step_size, up_direction;
 	Movable target;
 	
 	double velocity;
