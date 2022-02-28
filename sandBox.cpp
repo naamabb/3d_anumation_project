@@ -149,8 +149,9 @@ void SandBox::SnakeLoader(const std::string& config) {
         data().set_visible(false, 1);
         data().set_visible(false, 2);
 
-
-        data().MyScale(Eigen::Vector3d(SPHERE_SCALE, SPHERE_SCALE, SPHERE_SCALE));
+       
+       data().MyScale(Eigen::Vector3d(SPHERE_SCALE, SPHERE_SCALE, SPHERE_SCALE));
+        
         //data().MyTranslate(targets_positions[i], true);
     }
     nameFileout.close();
@@ -249,13 +250,23 @@ void SandBox::MoveTargets(int numTargets)
 
 }
 
+void SandBox::bounceTarget(int idx) {
+    Eigen::Vector3d translation = 0.1*gridNormal * sin(2*M_PI*(velocity/2)*bounce);
+    //bounce = (bounce + 1)%2*M_PI;
+    bounce ++;
+    data_list[idx].MyTranslate(translation, true);
+
+}
+
+
 void SandBox::StartGame(Renderer& renderer) {
     render = &renderer;
+    
     for (int i = 0; i < NUM_TARGETS; i++) {
         data_list[i + 1].set_visible(false, 1);
         data_list[i + 1].set_visible(false, 2);
     }
-    render->SetCameraEye(Eigen::Vector3f(0, 10, 0));
+    render->SetCameraEye(Eigen::Vector3f(0, STATIC_CAMERA, 0));
     render->core().camera_up = Eigen::Vector3f(0, 0, 1);
     original_base_zoom = render->core().camera_base_zoom;
     Points = 0;
@@ -265,6 +276,9 @@ void SandBox::StartGame(Renderer& renderer) {
     center = render->core().camera_center;
     levelUp = false;
     int size = sqrt_targets*2;
+    gridNormal = Eigen::Vector3d(0, 1, 0);
+    bounce = 0;
+    extraPointsTar = 1;
     int numTargets = calculateGrid(Eigen::Vector3d(0,0,1), Eigen::Vector3d(1,0,0), Eigen::Vector3d(1,0,-6),size);
     MoveTargets(numTargets);
 
@@ -602,7 +616,7 @@ void SandBox::firstEyeView() {
 }
 
 void SandBox::StaticView() {
-    render->SetCameraEye(Eigen::Vector3f(0, 10, 0));
+    render->SetCameraEye(Eigen::Vector3f(0, STATIC_CAMERA, 0));
     render->core().camera_up = Eigen::Vector3f(0, 0, 1);
     render->centerCamera(Eigen::Vector3f(0, 0, 0));
     render->core().camera_base_zoom = original_base_zoom;
@@ -1470,6 +1484,7 @@ bool SandBox::CatchTarget() {
         if ((snake_head - sphere_center).norm() <= (SPHERE_RADIUS)) {
             data_list[targets_to_show[idx]].set_visible(false, 1);
             data_list[targets_to_show[idx]].set_visible(false, 2);
+            lastCatched = targets_to_show[idx];
             targets_to_show.erase(targets_to_show.begin() + idx);
             return true;
         }
@@ -1514,6 +1529,8 @@ void SandBox::LevelUp(int n) {
     xMat << 1, 0, 0, 0, cos(amtX), -sin(amtX), 0, sin(amtX), cos(amtX);
     Eigen::Vector3d d1 = xMat * Eigen::Vector3d(0, 0, 1);
     Eigen::Vector3d d2 = Eigen::Vector3d(1, 0, 0);
+    gridNormal = d1.cross(d2).normalized();
+    bounce = 0;
     int size = sqrt_targets * 2;
     int numTargets = calculateGrid(d1, d2, Eigen::Vector3d(6, 0, -6), size);
     MoveTargets(numTargets);
@@ -1846,11 +1863,17 @@ void SandBox::Animate()
 {
     if (isActive)
     {
+        bounceTarget(extraPointsTar);
         if (levelUp) {
             LevelUp(++level);
         }
         if (CatchTarget()) {
             Points++;
+            if (lastCatched == extraPointsTar) {
+
+                Points++;
+            }
+
             std::cout << "Points = " << Points << std::endl;
 
         }

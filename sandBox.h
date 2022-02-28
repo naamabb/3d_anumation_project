@@ -13,12 +13,13 @@
 #define HALF_SNAKE_LEN 0.8
 #define SHAPE_SCALE 5
 //#define SHAPE_TRANS (HALF_SNAKE_LEN*SHAPE_SCALE)
-#define SHAPE_TRANS 5
+#define SHAPE_TRANS 2
 #define SCALE 1
 #define TARGET_OBJ_PATH "C:/Users/97252/Desktop/courses/3D_animation/EngineForAnimationCourse/tutorial/data/sphere.obj"
 #define SPHERE_SCALE 0.7
 #define SPHERE_RADIUS (SPHERE_SCALE)
 #define NUM_TARGETS 64
+#define STATIC_CAMERA 8
 typedef std::set<std::pair<double, int> > PriorityQueue;
 
 class SandBox : public igl::opengl::glfw::Viewer
@@ -87,6 +88,7 @@ public:
 	bool CatchTarget();
 	void flipAutoMode();
 	void LevelUp(int n);
+	void bounceTarget(int idx);
 	void ResetJoints();
 	int calculateGrid(double xCorner, double yCorner, double zCorner, double xDim, double yDim,
 		double zDim, double xSize, double ySize, double zSize);
@@ -156,6 +158,9 @@ private:
 	double velocity;
 	bool updateDirection, FollowMe;
 	
+	int bounce;
+	Eigen::Vector3d gridNormal;
+	int lastCatched, extraPointsTar;
 
 	
 
